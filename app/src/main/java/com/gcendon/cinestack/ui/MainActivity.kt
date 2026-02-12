@@ -1,16 +1,21 @@
-package com.gcendon.cinestack
+package com.gcendon.cinestack.ui
 
 import android.os.Bundle
+import android.util.Log // Importamos Log para que sea más profesional que println
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.gcendon.cinestack.data.Constants
+import com.gcendon.cinestack.data.remote.RetrofitClient
+import com.gcendon.cinestack.ui.screens.HomeScreen
 import com.gcendon.cinestack.ui.theme.CineStackTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,29 +24,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CineStackTheme {
+                val viewModel = MovieViewModel()
+                // El Scaffold ayuda a manejar los espacios (Edge-to-Edge)
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    // Le pasamos el padding al HomeScreen para que no se pegue a los bordes
+                    Box(modifier = Modifier.padding(innerPadding)) {
+                        HomeScreen(viewModel)
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    CineStackTheme {
-        Greeting("Android")
     }
 }
