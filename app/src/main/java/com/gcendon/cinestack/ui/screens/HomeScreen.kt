@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -15,22 +16,57 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage // ¡Usamos Coil para las fotos!
 import com.gcendon.cinestack.domain.Movie
+import com.gcendon.cinestack.ui.MovieUiState
 import com.gcendon.cinestack.ui.MovieViewModel
 
 @Composable
 fun HomeScreen(viewModel: MovieViewModel) {
-    val movies by viewModel.movies.collectAsState()
+    // 1. "Escuchamos" el estado del ViewModel.
+    // .collectAsState() transforma el flujo de datos en algo que Compose entiende.
+    val uiState by viewModel.uiState.collectAsState()
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2), // 2 columnas como Netflix
-        contentPadding = PaddingValues(8.dp)
-    ) {
-        items(movies) { movie ->
-            MovieCard(movie)
+    // 2. Usamos 'when'. Es como el switch/case de escritorio pero obligatorio:
+    // tenés que manejar SI O SI todos los estados de la sealed class.
+    when (val state = uiState) {
+        is MovieUiState.Loading -> {
+            // ESTADO ROJO: Mostramos el circulito de carga
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator() // El "spinner" clásico de Android
+            }
+        }
+
+        is MovieUiState.Success -> {
+            // ESTADO VERDE: Dibujamos la grilla con las pelis que vienen dentro del estado
+            val movies = state.movies
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(8.dp)
+            ) {
+                items(movies) { movie ->
+                    MovieCard(movie)
+                }
+            }
+        }
+
+        is MovieUiState.Error -> {
+            // ESTADO AMARILLO/ERROR: Mostramos el mensaje y un botón para reintentar
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "¡Uy! Algo falló", style = MaterialTheme.typography.headlineSmall)
+                Text(text = state.message, modifier = Modifier.padding(16.dp))
+                Button(onClick = { viewModel.fetchMovies() }) {
+                    Text("Reintentar")
+                }
+            }
         }
     }
 }
-
 @Composable
 fun MovieCard(movie: Movie) {
     Card(
