@@ -1,5 +1,6 @@
 package com.gcendon.cinestack.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -20,7 +21,8 @@ import com.gcendon.cinestack.ui.MovieUiState
 import com.gcendon.cinestack.ui.MovieViewModel
 
 @Composable
-fun HomeScreen(viewModel: MovieViewModel) {
+fun HomeScreen(viewModel: MovieViewModel,
+               onMovieClick: (Int) -> Unit) {
     // 1. "Escuchamos" el estado del ViewModel.
     // .collectAsState() transforma el flujo de datos en algo que Compose entiende.
     val uiState by viewModel.uiState.collectAsState()
@@ -46,7 +48,7 @@ fun HomeScreen(viewModel: MovieViewModel) {
                 contentPadding = PaddingValues(8.dp)
             ) {
                 items(movies) { movie ->
-                    MovieCard(movie)
+                    MovieCard(movie = movie, onClick = { onMovieClick(movie.id) })
                 }
             }
         }
@@ -68,13 +70,14 @@ fun HomeScreen(viewModel: MovieViewModel) {
     }
 }
 @Composable
-fun MovieCard(movie: Movie) {
+fun MovieCard(movie: Movie, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .padding(8.dp)
-            .fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp) // Le damos un toque de sombra
-    ) {
+            .fillMaxWidth()
+            .clickable { onClick() }, // <--- Esto hace que la tarjeta reaccione al toque
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ){
         Column {
             AsyncImage(
                 model = movie.posterUrl,

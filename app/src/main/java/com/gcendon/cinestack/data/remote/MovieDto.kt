@@ -11,5 +11,11 @@ data class MovieDto(
     @SerializedName("title") val title: String,
     @SerializedName("overview") val overview: String,
     @SerializedName("poster_path") val posterPath: String?,
-    @SerializedName("vote_average") val voteAverage: Double
+    @SerializedName("vote_average") val voteAverage: Double,
+    @SerializedName("runtime") val runtime: Int?, // Viene en minutos
+    @SerializedName("genres") val genres: List<GenreDto>?
+)
+
+data class GenreDto(
+    @SerializedName("name") val name: String
 )
