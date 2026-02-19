@@ -48,4 +48,17 @@ class MovieRepository {
             cast = castNames
         )
     }
+
+    suspend fun searchMovies(query: String): List<Movie> {
+        val response = api.searchMovies(Constants.API_KEY, query)
+        return response.results.map { dto ->
+            Movie(
+                id = dto.id,
+                title = dto.title,
+                overview = dto.overview,
+                posterUrl = "${Constants.IMAGE_BASE_URL}${dto.posterPath}",
+                rating = dto.voteAverage
+            )
+        }
+    }
 }

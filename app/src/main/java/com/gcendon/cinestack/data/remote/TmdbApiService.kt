@@ -25,4 +25,12 @@ interface TmdbApiService {
         @Path("movie_id") movieId: Int,
         @Query("api_key") apiKey: String
     ): CreditsResponse
+
+    @GET("search/movie")
+    suspend fun searchMovies(
+        @Query("api_key") apiKey: String,
+        @Query("query") query: String, // <--- El texto que escribe el usuario
+        @Query("language") language: String = "es-MX",
+        @Query("page") page: Int = 1
+    ): MovieResponse
 }

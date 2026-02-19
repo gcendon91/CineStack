@@ -21,8 +21,22 @@ class MovieViewModel : ViewModel() {
     private val _uiState = MutableStateFlow<MovieUiState>(MovieUiState.Loading)
     val uiState: StateFlow<MovieUiState> = _uiState
 
+    // nueva variable para el texto que escribe el usuario
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
+
     init {
         fetchMovies()
+    }
+
+    // Función que llama el Home cuando el usuario escribe
+    fun onSearchQueryChanged(newQuery: String) {
+        _searchQuery.value = newQuery
+        if (newQuery.isBlank()) {
+            fetchMovies() // Si borra todo, volvemos a las populares
+        } else {
+            searchMovies(newQuery)
+        }
     }
 
     fun fetchMovies() {
@@ -37,6 +51,19 @@ class MovieViewModel : ViewModel() {
             } catch (e: Exception) {
                 // 4. Si algo falla, pasamos al estado Error con el mensaje
                 _uiState.value = MovieUiState.Error(e.message ?: "Error desconocido")
+            }
+        }
+    }
+
+    // Nueva función privada para buscar
+    private fun searchMovies(query: String) {
+        viewModelScope.launch {
+            // No ponemos Loading acá para que la pantalla no parpadee tanto al escribir
+            try {
+                val results = repository.searchMovies(query)
+                _uiState.value = MovieUiState.Success(results)
+            } catch (e: Exception) {
+                _uiState.value = MovieUiState.Error("Error al buscar: ${e.message}")
             }
         }
     }
