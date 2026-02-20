@@ -1,20 +1,25 @@
 package com.gcendon.cinestack.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +38,15 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     //traigo lo que el usuario escribe en la search bar
     val searchQuery by viewModel.searchQuery.collectAsState()
+    //obtengo la categoria seleccionada
+    val selectedCategory by viewModel.selectedCategory.collectAsState()
+
+    // Lista de categorías para los botoncitos
+    val categories = listOf(
+        "popular" to "Populares",
+        "top_rated" to "Mejor Valoradas",
+        "upcoming" to "Próximas"
+    )
 
     Column(modifier = Modifier.fillMaxSize()) {
         //LA BARRA DE BÚSQUEDA (Siempre visible arriba)
@@ -47,6 +61,24 @@ fun HomeScreen(
             singleLine = true,
             shape = RoundedCornerShape(12.dp)
         )
+
+        // FILA DE CATEGORÍAS (Chips)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .horizontalScroll(rememberScrollState()), // Por si no entran todos los botones
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            categories.forEach { (id, name) ->
+                FilterChip(
+                    selected = selectedCategory == id,
+                    onClick = { viewModel.onCategorySelected(id) },
+                    label = { Text(name) },
+                    shape = RoundedCornerShape(50.dp) // Bien redondeados
+                )
+            }
+        }
 
         // 2. Usamos 'when'. Es como el switch/case de escritorio pero obligatorio:
         // tenés que manejar SI O SI todos los estados de la sealed class.
@@ -88,7 +120,7 @@ fun HomeScreen(
                             style = MaterialTheme.typography.headlineSmall
                         )
                         Text(text = state.message, modifier = Modifier.padding(16.dp))
-                        Button(onClick = { viewModel.fetchMovies() }) {
+                        Button(onClick = { viewModel.onCategorySelected(selectedCategory) }) {
                             Text("Reintentar")
                         }
                     }
@@ -104,32 +136,62 @@ fun MovieCard(movie: Movie, onClick: () -> Unit) {
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
-            .clickable { onClick() }, // <--- Esto hace que la tarjeta reaccione al toque
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .clickable { onClick() },
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(12.dp) // Esquinas un poco más redondeadas
     ) {
         Column {
-            AsyncImage(
-                model = movie.posterUrl,
-                contentDescription = movie.title,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp), // Un poco más alta para que se vea mejor el poster
-                contentScale = ContentScale.Crop // Esto hace que la imagen llene el espacio sin deformarse
-            )
+            // Usamos un Box para poder encimar el puntaje sobre la imagen
+            Box {
+                AsyncImage(
+                    model = movie.posterUrl,
+                    contentDescription = movie.title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(250.dp),
+                    contentScale = ContentScale.Crop
+                )
 
-            // Contenedor para el texto con altura fija para que todas las cards midan lo mismo
+                // Badge de puntuación (arriba a la derecha)
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(bottomStart = 12.dp), // Solo redondeamos una esquina
+                    modifier = Modifier.align(Alignment.TopEnd)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFFFC107), // Color amarillo "estrella"
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (movie.rating > 0) "%.1f".format(movie.rating) else "S/P", // S/P = Sin Puntaje
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            // Título de la película
             Column(
                 modifier = Modifier
                     .padding(8.dp)
-                    .height(50.dp), // Ajustamos este valor según el tamaño de fuente
+                    .height(50.dp),
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = movie.title,
                     style = MaterialTheme.typography.titleSmall,
-                    maxLines = 2, // Permitimos hasta 2 líneas para títulos largos
-                    overflow = TextOverflow.Ellipsis, // Si es más largo, mete los "..."
-                    lineHeight = 18.sp // Espaciado entre líneas para que no quede amontonado
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 18.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
