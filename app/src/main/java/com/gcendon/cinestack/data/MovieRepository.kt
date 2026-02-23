@@ -60,8 +60,22 @@ class MovieRepository {
 
     suspend fun getMovieTrailerKey(movieId: Int): String? {
         val response = api.getMovieVideos(movieId, Constants.API_KEY)
-        // Buscamos el primer video que cumpla las condiciones
-        return response.results.find { it.site == "YouTube" && it.type == "Trailer" }?.key
+
+        // 1. Buscamos primero el Trailer oficial
+        val officialTrailer = response.results.find {
+            it.site == "YouTube" && it.type == "Trailer" && it.official
+        }
+
+        // 2. Si no hay oficial, buscamos cualquier Trailer
+        val anyTrailer = response.results.find {
+            it.site == "YouTube" && it.type == "Trailer"
+        }
+
+        // 3. Si sigue sin haber nada, buscamos un Teaser o el primero que venga
+        val fallback = response.results.find { it.site == "YouTube" }
+
+        // Devolvemos el mejor que hayamos encontrado (en ese orden)
+        return (officialTrailer ?: anyTrailer ?: fallback)?.key
     }
 
     suspend fun getMoviesByGenre(genreId: Int): List<Movie> {

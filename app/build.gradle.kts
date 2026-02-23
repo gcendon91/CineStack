@@ -71,4 +71,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     implementation(libs.androidx.navigation.compose)
+
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
 }

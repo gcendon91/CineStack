@@ -16,7 +16,3 @@ data class MovieDto(
     @SerializedName("genres") val genres: List<GenreDto>? // <--- CAMBIAR ESTO
 )
 
-data class GenreDto(
-    @SerializedName("id") val id: Int,
-    @SerializedName("name") val name: String
-)

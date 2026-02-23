@@ -55,6 +55,7 @@ class MovieViewModel : ViewModel() {
             // En lugar de ir siempre a populares, vamos a la que estaba elegida
             fetchMoviesByCategory(_selectedCategory.value)
         } else {
+            _selectedCategory.value = ""
             searchJob = viewModelScope.launch {
                 delay(500) // El "reloj" que evita llamadas innecesarias
                 searchMovies(newQuery)
@@ -96,6 +97,7 @@ class MovieViewModel : ViewModel() {
     fun onGenreSelected(genreId: Int) {
         _searchQuery.value = "" // Si filtro por género, limpio el buscador
 
+        _selectedCategory.value = ""
         viewModelScope.launch {
             _uiState.value = MovieUiState.Loading
             try {

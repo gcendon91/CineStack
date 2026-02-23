@@ -13,5 +13,7 @@ data class VideoDto(
     @SerializedName("site")
     val site: String,     // Debe ser "YouTube"
     @SerializedName("type")
-    val type: String      // Debe ser "Trailer"
+    val type: String,      // Debe ser "Trailer"
+    @SerializedName("official") val official: Boolean
+
 )

@@ -9,12 +9,16 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,7 +31,9 @@ import coil.compose.AsyncImage // ¡Usamos Coil para las fotos!
 import com.gcendon.cinestack.domain.Movie
 import com.gcendon.cinestack.ui.MovieUiState
 import com.gcendon.cinestack.ui.MovieViewModel
+import androidx.compose.material.icons.filled.List
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: MovieViewModel,
@@ -48,20 +54,41 @@ fun HomeScreen(
         "upcoming" to "Próximas"
     )
 
+    val sheetState = rememberModalBottomSheetState() // Controla la animación
+    var showSheet by remember { mutableStateOf(false) } // Controla si se ve o no
+
+    // Traemos los géneros del ViewModel
+    val genres by viewModel.genres.collectAsState()
+
+
     Column(modifier = Modifier.fillMaxSize()) {
-        //LA BARRA DE BÚSQUEDA (Siempre visible arriba)
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { viewModel.onSearchQueryChanged(it) },
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            placeholder = { Text("Buscar película...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp)
-        )
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp), // Ajustamos padding
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.onSearchQueryChanged(it) },
+                modifier = Modifier.weight(1f), // CAMBIO CLAVE: weight(1f) para que deje espacio al botón
+                placeholder = { Text("Buscar película...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
 
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // El nuevo botón de filtro
+            IconButton(onClick = { showSheet = true }) {
+                Icon(
+                    imageVector = Icons.Default.List,
+                    contentDescription = "Filtros",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
         // FILA DE CATEGORÍAS (Chips)
         Row(
             modifier = Modifier
@@ -127,6 +154,47 @@ fun HomeScreen(
                 }
             }
         }
+
+        if (showSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showSheet = false },
+                sheetState = sheetState
+            ) {
+                // Contenido de la cortina
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp, start = 16.dp, end = 16.dp)
+                ) {
+                    Text(
+                        text = "Seleccionar Género",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // Grilla o lista de géneros
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.heightIn(max = 400.dp) // Para que no ocupe toda la pantalla
+                    ) {
+                        items(genres) { genre ->
+                            FilterChip(
+                                selected = false, // Podríamos guardar cuál está seleccionado después
+                                onClick = {
+                                    viewModel.onGenreSelected(genre.id)
+                                    showSheet = false // Cerramos la cortina al elegir
+                                },
+                                label = { Text(genre.name) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }
 
