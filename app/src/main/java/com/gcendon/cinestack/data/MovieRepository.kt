@@ -5,7 +5,11 @@ import com.gcendon.cinestack.data.remote.RetrofitClient
 import com.gcendon.cinestack.domain.Genre
 import com.gcendon.cinestack.domain.Movie
 
-class MovieRepository {
+import com.gcendon.cinestack.data.local.dao.MovieDao
+import com.gcendon.cinestack.data.local.entities.MovieEntity
+import kotlinx.coroutines.flow.Flow
+
+class MovieRepository(private val movieDao: MovieDao) {
     private val api = RetrofitClient.apiService
 
     suspend fun getPopularMovies(): List<Movie> {
@@ -24,7 +28,8 @@ class MovieRepository {
         // 3. Usamos el mapper para los datos básicos y .copy() para el resto
         return dto.toDomain().copy(
             duration = dto.runtime ?: 0,
-            genres = dto.genres?.joinToString(", ") { it.name } ?: "Sin género", // Mapeamos la lista a un solo String
+            genres = dto.genres?.joinToString(", ") { it.name }
+                ?: "Sin género", // Mapeamos la lista a un solo String
             director = directorName,
             cast = castNames
         )
@@ -92,5 +97,16 @@ class MovieRepository {
             rating = this.voteAverage
         )
     }
+
+    // --- MÉTODOS LOCALES (FAVORITOS) ---
+
+    // Obtenemos los favoritos como Flow para que la UI se entere de cambios al toque
+    fun getFavorites(): Flow<List<MovieEntity>> = movieDao.getAllFavorites()
+
+    suspend fun addFavorite(movie: MovieEntity) = movieDao.insertFavorite(movie)
+
+    suspend fun removeFavorite(movie: MovieEntity) = movieDao.deleteFavorite(movie)
+
+    suspend fun isFavorite(id: Int): Boolean = movieDao.isFavorite(id)
 
 }

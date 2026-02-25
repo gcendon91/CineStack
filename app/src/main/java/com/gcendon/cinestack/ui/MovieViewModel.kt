@@ -11,14 +11,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.CreationExtras
+import com.gcendon.cinestack.CineStackApp
+
 sealed class MovieUiState {
     object Loading : MovieUiState() // Estado: Cargando...
     data class Success(val movies: List<Movie>) : MovieUiState() // Estado: ¡Acá tenés las pelis!
     data class Error(val message: String) : MovieUiState() // Estado: Explotó algo.
 }
 
-class MovieViewModel : ViewModel() {
-    private val repository = MovieRepository()
+class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
 
     // 1. Cambiamos el tipo de dato: de List<Movie> a MovieUiState
     // Empezamos el estado en "Loading" (Cargando) por defecto
@@ -118,6 +121,49 @@ class MovieViewModel : ViewModel() {
                 _uiState.value = MovieUiState.Success(results)
             } catch (e: Exception) {
                 _uiState.value = MovieUiState.Error("Error al buscar: ${e.message}")
+            }
+        }
+    }
+
+    suspend fun getMovieDetail(id: Int) = repository.getMovieById(id)
+    suspend fun getTrailer(id: Int) = repository.getMovieTrailerKey(id)
+    suspend fun isMovieFavorite(movieId: Int): Boolean {
+        return repository.isFavorite(movieId)
+    }
+
+    fun toggleFavorite(movie: Movie) {
+        viewModelScope.launch {
+            if (repository.isFavorite(movie.id)) {
+                repository.removeFavorite(movie.toEntity())
+            } else {
+                repository.addFavorite(movie.toEntity())
+            }
+        }
+    }
+
+    // El "traductor" de Movie (UI) a MovieEntity (Base de Datos)
+    private fun Movie.toEntity() = com.gcendon.cinestack.data.local.entities.MovieEntity(
+        id = this.id,
+        title = this.title,
+        posterUrl = this.posterUrl,
+        rating = this.rating,
+        releaseDate = ""
+    )
+    companion object {
+        val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+                // 1. Buscamos la instancia de la App (CineStackApp)
+                val application = checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]) as CineStackApp
+
+                // 2. Usamos el DAO de la base de datos que ya vive en la App
+                val dao = application.database.movieDao()
+
+                // 3. Creamos el Repositorio pasándole ese DAO
+                val repository = MovieRepository(dao)
+
+                // 4. Devolvemos el ViewModel listo para usar
+                return MovieViewModel(repository) as T
             }
         }
     }

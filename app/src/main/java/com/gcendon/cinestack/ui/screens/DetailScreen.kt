@@ -8,6 +8,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,24 +20,34 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.gcendon.cinestack.data.MovieRepository
 import com.gcendon.cinestack.domain.Movie
+import com.gcendon.cinestack.ui.MovieViewModel
 
 @Composable
-fun DetailScreen(movieId: Int) {
+fun DetailScreen(
+    movieId: Int,
+    viewModel: MovieViewModel = viewModel(factory = MovieViewModel.Factory)
+) {
     val context = LocalContext.current
-    val repository = MovieRepository()
 
     // Estados de la pantalla
     var movie by remember { mutableStateOf<Movie?>(null) }
     var trailerKey by remember { mutableStateOf<String?>(null) }
 
-    // Carga de datos
+    // Estado para saber si es favorita
+    var isFavorite by remember { mutableStateOf(false) }
+
     LaunchedEffect(movieId) {
         try {
-            movie = repository.getMovieById(movieId)
-            trailerKey = repository.getMovieTrailerKey(movieId)
+            // USAMOS EL VIEWMODEL EN LUGAR DEL REPOSITORY
+            movie = viewModel.getMovieDetail(movieId)
+            trailerKey = viewModel.getTrailer(movieId)
+
+            // Verificamos si ya es favorita al cargar
+            isFavorite = viewModel.isMovieFavorite(movieId)
         } catch (e: Exception) {
             Log.e("CineStack", "Error cargando detalle: ${e.message}")
         }
@@ -60,11 +72,31 @@ fun DetailScreen(movieId: Int) {
 
             // Contenido: Información detallada
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = peli.title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = peli.title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f) // Esto hace que el título ocupe el espacio y no empuje al corazón fuera de la pantalla
+                    )
+
+                    IconButton(onClick = {
+                        viewModel.toggleFavorite(peli) // Llama a la función de Room que creamos
+                        isFavorite = !isFavorite      // Cambia el color del corazón al toque
+                    }) {
+                        Icon(
+                            // Si isFavorite es true, corazón lleno. Si no, solo el borde.
+                            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favorito",
+                            tint = if (isFavorite) Color.Red else Color.Gray,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 

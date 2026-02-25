@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -40,7 +41,7 @@ class MainActivity : ComponentActivity() {
             CineStackTheme {
                 // 1. El NavController es el "Chofer": él sabe cómo ir de A a B.
                 val navController = rememberNavController()
-                val viewModel = MovieViewModel()
+                val viewModel: MovieViewModel = viewModel(factory = MovieViewModel.Factory)
 
                 //Observamos en qué pantalla estamos para saber si mostrar la flecha
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
