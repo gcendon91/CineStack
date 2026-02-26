@@ -14,6 +14,10 @@ import kotlinx.coroutines.launch
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.gcendon.cinestack.CineStackApp
+import com.gcendon.cinestack.data.local.entities.MovieEntity
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 sealed class MovieUiState {
     object Loading : MovieUiState() // Estado: Cargando...
@@ -42,6 +46,18 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
     // Lista de géneros que se cargará una sola vez
     private val _genres = MutableStateFlow<List<Genre>>(emptyList())
     val genres: StateFlow<List<Genre>> = _genres
+
+    // Convertimos el Flow de Room en un StateFlow que la UI pueda entender
+    val favoriteMovies: StateFlow<List<Movie>> = repository.getFavorites()
+        .map { entities ->
+            // Convertimos la lista de 'MovieEntity' de la DB a 'Movie' de la UI
+            entities.map { it.toDomain() }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     init {
         fetchMoviesByCategory("popular")
@@ -141,7 +157,7 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
         }
     }
 
-    // El "traductor" de Movie (UI) a MovieEntity (Base de Datos)
+    // El "traductor" de Movie (UI) a MovieEntity (Base de Datos), es para guardar
     private fun Movie.toEntity() = com.gcendon.cinestack.data.local.entities.MovieEntity(
         id = this.id,
         title = this.title,
@@ -149,6 +165,23 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
         rating = this.rating,
         releaseDate = ""
     )
+
+    // con este leo las movies favoritas guardadas
+    private fun MovieEntity.toDomain(): Movie {
+        return Movie(
+            id = this.id,
+            title = this.title,
+            posterUrl = this.posterUrl,
+            rating = this.rating,
+            // Los campos que no guardamos en la DB los ponemos por defecto
+            duration = 0,
+            genres = "",
+            overview = "",
+            director = "",
+            cast = ""
+        )
+    }
+
     companion object {
         val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")

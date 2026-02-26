@@ -1,6 +1,5 @@
 package com.gcendon.cinestack.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -9,9 +8,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -21,23 +18,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage // ¡Usamos Coil para las fotos!
-import com.gcendon.cinestack.domain.Movie
 import com.gcendon.cinestack.ui.MovieUiState
 import com.gcendon.cinestack.ui.MovieViewModel
 import androidx.compose.material.icons.filled.List
+import com.gcendon.cinestack.ui.components.MovieCard
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.ui.text.font.FontWeight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: MovieViewModel,
-    onMovieClick: (Int) -> Unit
+    onMovieClick: (Int) -> Unit,
+    onFavoritesClick: () -> Unit
 ) {
     // 1. "Escuchamos" el estado del ViewModel.
     // .collectAsState() transforma el flujo de datos en algo que Compose entiende.
@@ -61,11 +55,22 @@ fun HomeScreen(
     val genres by viewModel.genres.collectAsState()
 
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .statusBarsPadding()) {
+        Text(text = "CineStack",
+            style = MaterialTheme.typography.displaySmall, // Un estilo más grande y copado
+            fontWeight = FontWeight.ExtraBold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp), // Ajustamos padding
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 16.dp,
+                    bottom = 0.dp
+                ), // Ajustamos padding
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
@@ -85,6 +90,16 @@ fun HomeScreen(
                 Icon(
                     imageVector = Icons.Default.List,
                     contentDescription = "Filtros",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(modifier = Modifier.width(4.dp)) // Un pequeño espacio entre botones
+
+            IconButton(onClick = { onFavoritesClick() }) {
+                Icon(
+                    imageVector = Icons.Default.Favorite, // El corazón
+                    contentDescription = "Ver Favoritos",
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -195,73 +210,5 @@ fun HomeScreen(
             }
         }
 
-    }
-}
-
-@Composable
-fun MovieCard(movie: Movie, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .padding(8.dp)
-            .fillMaxWidth()
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(12.dp) // Esquinas un poco más redondeadas
-    ) {
-        Column {
-            // Usamos un Box para poder encimar el puntaje sobre la imagen
-            Box {
-                AsyncImage(
-                    model = movie.posterUrl,
-                    contentDescription = movie.title,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp),
-                    contentScale = ContentScale.Crop
-                )
-
-                // Badge de puntuación (arriba a la derecha)
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
-                    shape = RoundedCornerShape(bottomStart = 12.dp), // Solo redondeamos una esquina
-                    modifier = Modifier.align(Alignment.TopEnd)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = Color(0xFFFFC107), // Color amarillo "estrella"
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (movie.rating > 0) "%.1f".format(movie.rating) else "S/P", // S/P = Sin Puntaje
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-
-            // Título de la película
-            Column(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .height(50.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = movie.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 18.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
     }
 }

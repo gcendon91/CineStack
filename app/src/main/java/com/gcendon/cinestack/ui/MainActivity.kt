@@ -29,6 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import com.gcendon.cinestack.data.Constants
 import com.gcendon.cinestack.data.remote.RetrofitClient
 import com.gcendon.cinestack.ui.screens.DetailScreen
+import com.gcendon.cinestack.ui.screens.FavoritesScreen
 import com.gcendon.cinestack.ui.screens.HomeScreen
 import com.gcendon.cinestack.ui.theme.CineStackTheme
 
@@ -47,50 +48,48 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    topBar = {
-                        // Definimos la barra superior
-                        TopAppBar(
-                            title = { Text("CineStack") },
-                            navigationIcon = {
-                                // Si la ruta empieza con "detail", mostramos la flecha
-                                if (currentRoute?.startsWith("detail") == true) {
-                                    IconButton(onClick = { navController.navigateUp() }) {
-                                        Icon(
-                                            imageVector = Icons.Default.ArrowBack,
-                                            contentDescription = "Volver"
-                                        )
-                                    }
-                                }
-                            }
-                        )
-                    }
-                ){ innerPadding ->
-                    // 2. El NavHost es el "Mapa": define qué rutas existen.
-                    NavHost(
-                        navController = navController,
-                        startDestination = "home", // Empezamos en la lista
-                        modifier = Modifier
-                            .padding(innerPadding)
-                            .fillMaxSize()
-                    ) {
-                        // Ruta 1: Home
-                        composable("home") {
-                            HomeScreen(viewModel = viewModel, onMovieClick = { movieId ->
+
+                NavHost(
+                    navController = navController,
+                    startDestination = "home", // Empezamos en la lista
+                    modifier = Modifier
+                        .fillMaxSize()
+                ) {
+                    // Ruta 1: Home
+                    composable("home") {
+                        HomeScreen(
+                            viewModel = viewModel, onMovieClick = { movieId ->
                                 // Cuando tocan una peli, navegamos al detalle pasando el ID
                                 navController.navigate("detail/$movieId")
+                            },
+                            onFavoritesClick = {
+                                navController.navigate("favorites")
                             })
-                        }
+                    }
 
-                        // Ruta 2: Detalle (fijate cómo definimos el argumento en la URL)
-                        composable("detail/{movieId}") { backStackEntry ->
-                            val id = backStackEntry.arguments?.getString("movieId")?.toInt() ?: 0
-                            DetailScreen(movieId = id)
-                        }
+                    // Ruta 2: Detalle (fijate cómo definimos el argumento en la URL)
+                    composable("detail/{movieId}") { backStackEntry ->
+                        val id = backStackEntry.arguments?.getString("movieId")?.toInt() ?: 0
+                        DetailScreen(movieId = id,
+                            onBackClick = {
+                                navController.popBackStack()
+                            })
+                    }
+                    // Ruta 3, favoritos
+                    composable("favorites") {
+                        FavoritesScreen(
+                            onMovieClick = { movieId ->
+                                // Si tocamos una peli en favoritos, vamos al detalle
+                                navController.navigate("detail/$movieId")
+                            },
+                            onBackClick = {
+                                navController.popBackStack() // <--- Esto "saca" la pantalla actual y vuelve a la anterior
+                            }
+                        )
                     }
                 }
             }
         }
     }
 }
+
