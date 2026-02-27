@@ -58,6 +58,8 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+    private val _similarMovies = MutableStateFlow<List<Movie>>(emptyList())
+    val similarMovies: StateFlow<List<Movie>> = _similarMovies
 
     init {
         fetchMoviesByCategory("popular")
@@ -137,6 +139,17 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
                 _uiState.value = MovieUiState.Success(results)
             } catch (e: Exception) {
                 _uiState.value = MovieUiState.Error("Error al buscar: ${e.message}")
+            }
+        }
+    }
+
+    fun fetchSimilarMovies(movieId: Int) {
+        viewModelScope.launch {
+            try {
+                val movies = repository.getSimilarMovies(movieId) // O getRecommendations
+                _similarMovies.value = movies
+            } catch (e: Exception) {
+                _similarMovies.value = emptyList()
             }
         }
     }

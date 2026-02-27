@@ -70,9 +70,13 @@ class MainActivity : ComponentActivity() {
                     // Ruta 2: Detalle (fijate cómo definimos el argumento en la URL)
                     composable("detail/{movieId}") { backStackEntry ->
                         val id = backStackEntry.arguments?.getString("movieId")?.toInt() ?: 0
-                        DetailScreen(movieId = id,
+                        DetailScreen(
+                            movieId = id,
                             onBackClick = {
                                 navController.popBackStack()
+                            },
+                            onMovieClick = { nuevoId ->
+                                navController.navigate("detail/$nuevoId")
                             })
                     }
                     // Ruta 3, favoritos

@@ -4,6 +4,8 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -26,6 +28,7 @@ import coil.compose.AsyncImage
 import com.gcendon.cinestack.data.MovieRepository
 import com.gcendon.cinestack.domain.Movie
 import com.gcendon.cinestack.ui.MovieViewModel
+import com.gcendon.cinestack.ui.components.MovieCard
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,7 +36,8 @@ import kotlinx.coroutines.launch
 fun DetailScreen(
     movieId: Int,
     viewModel: MovieViewModel = viewModel(factory = MovieViewModel.Factory),
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onMovieClick: (Int) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -47,6 +51,8 @@ fun DetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    val similarMovies by viewModel.similarMovies.collectAsState()
+
     LaunchedEffect(movieId) {
         try {
             // USAMOS EL VIEWMODEL EN LUGAR DEL REPOSITORY
@@ -55,6 +61,8 @@ fun DetailScreen(
 
             // Verificamos si ya es favorita al cargar
             isFavorite = viewModel.isMovieFavorite(movieId)
+
+            viewModel.fetchSimilarMovies(movieId)
         } catch (e: Exception) {
             Log.e("CineStack", "Error cargando detalle: ${e.message}")
         }
@@ -197,6 +205,33 @@ fun DetailScreen(
                     InfoSection(label = "Elenco", value = peli.cast)
 
                     Spacer(modifier = Modifier.height(32.dp))
+                    // Solo mostramos la sección si realmente hay películas similares
+                    if (similarMovies.isNotEmpty()) {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+                        Text(
+                            text = "Películas similares",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+
+                        // Usamos LazyRow para que se pueda scrollear de costado (tipo Netflix)
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(bottom = 32.dp) // Espacio al final para que no quede pegado
+                        ) {
+                            items(similarMovies) { peliSim ->
+                                // Reutilizamos el MovieCard que creamos ayer
+                                Box(modifier = Modifier.width(160.dp)) {
+                                    MovieCard(
+                                        movie = peliSim,
+                                        onClick = { onMovieClick(peliSim.id) }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
