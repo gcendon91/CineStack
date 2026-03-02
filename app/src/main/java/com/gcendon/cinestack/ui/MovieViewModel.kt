@@ -61,6 +61,14 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
     private val _similarMovies = MutableStateFlow<List<Movie>>(emptyList())
     val similarMovies: StateFlow<List<Movie>> = _similarMovies
 
+    //tema oscuro por defecto
+    private val _isDarkTheme = MutableStateFlow(true)
+    val isDarkTheme: StateFlow<Boolean> = _isDarkTheme
+
+    fun toggleTheme() {
+        _isDarkTheme.value = !_isDarkTheme.value
+    }
+
     init {
         fetchMoviesByCategory("popular")
         fetchGenres()

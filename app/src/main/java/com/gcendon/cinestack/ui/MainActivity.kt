@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -39,7 +40,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            CineStackTheme {
+            val viewModel: MovieViewModel = viewModel(factory = MovieViewModel.Factory)
+            val isDarkTheme by viewModel.isDarkTheme.collectAsState()
+
+            CineStackTheme(darkTheme = isDarkTheme) {
                 // 1. El NavController es el "Chofer": él sabe cómo ir de A a B.
                 val navController = rememberNavController()
                 val viewModel: MovieViewModel = viewModel(factory = MovieViewModel.Factory)
@@ -47,7 +51,6 @@ class MainActivity : ComponentActivity() {
                 //Observamos en qué pantalla estamos para saber si mostrar la flecha
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
-
 
                 NavHost(
                     navController = navController,

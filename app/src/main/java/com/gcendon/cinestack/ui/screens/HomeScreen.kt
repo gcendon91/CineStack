@@ -24,7 +24,10 @@ import com.gcendon.cinestack.ui.MovieViewModel
 import androidx.compose.material.icons.filled.List
 import com.gcendon.cinestack.ui.components.MovieCard
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.ui.text.font.FontWeight
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,161 +57,184 @@ fun HomeScreen(
     // Traemos los géneros del ViewModel
     val genres by viewModel.genres.collectAsState()
 
+    val isDarkTheme by viewModel.isDarkTheme.collectAsState()
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .statusBarsPadding()) {
-        Text(text = "CineStack",
-            style = MaterialTheme.typography.displaySmall, // Un estilo más grande y copado
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-        Row(
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 16.dp,
-                    bottom = 0.dp
-                ), // Ajustamos padding
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .statusBarsPadding()
         ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { viewModel.onSearchQueryChanged(it) },
-                modifier = Modifier.weight(1f), // CAMBIO CLAVE: weight(1f) para que deje espacio al botón
-                placeholder = { Text("Buscar película...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // El nuevo botón de filtro
-            IconButton(onClick = { showSheet = true }) {
-                Icon(
-                    imageVector = Icons.Default.List,
-                    contentDescription = "Filtros",
-                    tint = MaterialTheme.colorScheme.primary
+            // --- FILA 1: TÍTULO Y ACCIONES PRINCIPALES ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "CineStack",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.weight(1f) // Esto empuja los iconos a la derecha
                 )
-            }
 
-            Spacer(modifier = Modifier.width(4.dp)) // Un pequeño espacio entre botones
-
-            IconButton(onClick = { onFavoritesClick() }) {
-                Icon(
-                    imageVector = Icons.Default.Favorite, // El corazón
-                    contentDescription = "Ver Favoritos",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-        // FILA DE CATEGORÍAS (Chips)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .horizontalScroll(rememberScrollState()), // Por si no entran todos los botones
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            categories.forEach { (id, name) ->
-                FilterChip(
-                    selected = selectedCategory == id,
-                    onClick = { viewModel.onCategorySelected(id) },
-                    label = { Text(name) },
-                    shape = RoundedCornerShape(50.dp) // Bien redondeados
-                )
-            }
-        }
-
-        // 2. Usamos 'when'. Es como el switch/case de escritorio pero obligatorio:
-        // tenés que manejar SI O SI todos los estados de la sealed class.
-        //Usamos un Box con weight(1f) para que "empuje" la barra hacia arriba
-        Box(modifier = Modifier.weight(1f)) {
-            when (val state = uiState) {
-                is MovieUiState.Loading -> {
-                    // ESTADO ROJO: Mostramos el circulito de carga
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator() // El "spinner" clásico de Android
-                    }
+                // Botón de Tema (Sol/Luna)
+                IconButton(onClick = { viewModel.toggleTheme() }) {
+                    Icon(
+                        imageVector = if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.NightsStay,
+                        contentDescription = "Cambiar Tema",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }
 
-                is MovieUiState.Success -> {
-                    // ESTADO VERDE: Dibujamos la grilla con las pelis que vienen dentro del estado
-                    val movies = state.movies
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(8.dp)
-                    ) {
-                        items(movies) { movie ->
-                            MovieCard(movie = movie, onClick = { onMovieClick(movie.id) })
+                // Botón de Favoritos
+                IconButton(onClick = onFavoritesClick) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "Ver Favoritos",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            // --- FILA 2: BUSCADOR Y FILTROS ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.onSearchQueryChanged(it) },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Buscar película...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                IconButton(onClick = { showSheet = true }) {
+                    Icon(
+                        imageVector = Icons.Default.List,
+                        contentDescription = "Filtros",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            // --- FILA 3: CATEGORÍAS (Chips) ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                categories.forEach { (id, name) ->
+                    FilterChip(
+                        selected = selectedCategory == id,
+                        onClick = { viewModel.onCategorySelected(id) },
+                        label = { Text(name) },
+                        shape = RoundedCornerShape(50.dp)
+                    )
+                }
+            }
+            // 2. Usamos 'when'. Es como el switch/case de escritorio pero obligatorio:
+            // tenés que manejar SI O SI todos los estados de la sealed class.
+            //Usamos un Box con weight(1f) para que "empuje" la barra hacia arriba
+            Box(modifier = Modifier.weight(1f)) {
+                when (val state = uiState) {
+                    is MovieUiState.Loading -> {
+                        // ESTADO ROJO: Mostramos el circulito de carga
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator() // El "spinner" clásico de Android
+                        }
+                    }
+
+                    is MovieUiState.Success -> {
+                        // ESTADO VERDE: Dibujamos la grilla con las pelis que vienen dentro del estado
+                        val movies = state.movies
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            contentPadding = PaddingValues(8.dp)
+                        ) {
+                            items(movies) { movie ->
+                                MovieCard(movie = movie, onClick = { onMovieClick(movie.id) })
+                            }
+                        }
+                    }
+
+                    is MovieUiState.Error -> {
+                        // ESTADO AMARILLO/ERROR: Mostramos el mensaje y un botón para reintentar
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "¡Uy! Algo falló",
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+                            Text(text = state.message, modifier = Modifier.padding(16.dp))
+                            Button(onClick = { viewModel.onCategorySelected(selectedCategory) }) {
+                                Text("Reintentar")
+                            }
                         }
                     }
                 }
+            }
 
-                is MovieUiState.Error -> {
-                    // ESTADO AMARILLO/ERROR: Mostramos el mensaje y un botón para reintentar
+            if (showSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showSheet = false },
+                    sheetState = sheetState
+                ) {
+                    // Contenido de la cortina
                     Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 32.dp, start = 16.dp, end = 16.dp)
                     ) {
                         Text(
-                            text = "¡Uy! Algo falló",
-                            style = MaterialTheme.typography.headlineSmall
+                            text = "Seleccionar Género",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(bottom = 16.dp)
                         )
-                        Text(text = state.message, modifier = Modifier.padding(16.dp))
-                        Button(onClick = { viewModel.onCategorySelected(selectedCategory) }) {
-                            Text("Reintentar")
+
+                        // Grilla o lista de géneros
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.heightIn(max = 400.dp) // Para que no ocupe toda la pantalla
+                        ) {
+                            items(genres) { genre ->
+                                FilterChip(
+                                    selected = false, // Podríamos guardar cuál está seleccionado después
+                                    onClick = {
+                                        viewModel.onGenreSelected(genre.id)
+                                        showSheet = false // Cerramos la cortina al elegir
+                                    },
+                                    label = { Text(genre.name) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     }
                 }
             }
+
         }
-
-        if (showSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showSheet = false },
-                sheetState = sheetState
-            ) {
-                // Contenido de la cortina
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 32.dp, start = 16.dp, end = 16.dp)
-                ) {
-                    Text(
-                        text = "Seleccionar Género",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    // Grilla o lista de géneros
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.heightIn(max = 400.dp) // Para que no ocupe toda la pantalla
-                    ) {
-                        items(genres) { genre ->
-                            FilterChip(
-                                selected = false, // Podríamos guardar cuál está seleccionado después
-                                onClick = {
-                                    viewModel.onGenreSelected(genre.id)
-                                    showSheet = false // Cerramos la cortina al elegir
-                                },
-                                label = { Text(genre.name) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
     }
+
 }
