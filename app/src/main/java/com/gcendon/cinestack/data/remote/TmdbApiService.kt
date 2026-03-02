@@ -9,7 +9,7 @@ interface TmdbApiService {
     suspend fun getPopularMovies(
         @Query("api_key") apiKey: String,
         @Query("language") language: String = "es-MX", // <--- Cambiado de es-ES a es-MX
-        @Query("page") page: Int = 1
+        @Query("page") page: Int
     ): MovieResponse
 
     // NUEVA FUNCIÓN: El {movie_id} en el URL se reemplaza por el parámetro que le pases
@@ -37,13 +37,15 @@ interface TmdbApiService {
     @GET("movie/top_rated")
     suspend fun getTopRatedMovies(
         @Query("api_key") apiKey: String,
-        @Query("language") language: String = "es-MX"
+        @Query("language") language: String = "es-MX",
+        @Query("page") page: Int
     ): MovieResponse
 
     @GET("movie/upcoming")
     suspend fun getUpcomingMovies(
         @Query("api_key") apiKey: String,
-        @Query("language") language: String = "es-MX"
+        @Query("language") language: String = "es-MX",
+        @Query("page") page: Int
     ): MovieResponse
 
     @GET("genre/movie/list")
@@ -56,14 +58,16 @@ interface TmdbApiService {
     suspend fun getRecommendations(
         @Path("movie_id") movieId: Int,
         @Query("api_key") apiKey: String,
-        @Query("language") language: String = "es-MX"
+        @Query("language") language: String = "es-MX",
+        @Query("page") page: Int
     ): MovieResponse
 
     @GET("movie/{movie_id}/similar")
     suspend fun getSimilarMovies(
         @Path("movie_id") movieId: Int,
         @Query("api_key") apiKey: String,
-        @Query("language") language: String = "es-MX"
+        @Query("language") language: String = "es-MX",
+        @Query("page") page: Int
     ): MovieResponse
 
     @GET("movie/{movie_id}/videos")
@@ -78,6 +82,7 @@ interface TmdbApiService {
         @Query("api_key") apiKey: String,
         @Query("with_genres") genreId: Int, // El ID que el usuario elija (ej: 28 para Acción)
         @Query("language") language: String = "es-MX",
-        @Query("sort_by") sortBy: String = "popularity.desc" // Para que traiga las mejores primero
+        @Query("sort_by") sortBy: String = "popularity.desc", // Para que traiga las mejores primero
+        @Query("page") page: Int
     ): MovieResponse
 }

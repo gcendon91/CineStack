@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,6 +27,8 @@ import com.gcendon.cinestack.ui.components.MovieCard
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.text.font.FontWeight
 
 
@@ -58,6 +61,27 @@ fun HomeScreen(
     val genres by viewModel.genres.collectAsState()
 
     val isDarkTheme by viewModel.isDarkTheme.collectAsState()
+
+    val listState = rememberLazyGridState()
+    val currentGenreId by viewModel.currentGenreId.collectAsState()
+
+    //este efecto detecta cuando llegamos al final de la lista actual para cambiar de pagina
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .collect { lastVisibleIndex ->
+                val totalItems = listState.layoutInfo.totalItemsCount
+
+                // Si el último que veo es el último que existe (y hay pelis en la lista)
+                if (totalItems > 0 && lastVisibleIndex == totalItems - 1) {
+                    viewModel.loadNextPage()
+                }
+            }
+    }
+
+    //reinicia la posicion en las vistas si sucede alguno de los cambios de genero, categoria o busqueda
+    LaunchedEffect(selectedCategory, searchQuery, currentGenreId) {
+        listState.scrollToItem(0)
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -166,6 +190,9 @@ fun HomeScreen(
                         val movies = state.movies
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
+                            state = listState,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(8.dp)
                         ) {
                             items(movies) { movie ->

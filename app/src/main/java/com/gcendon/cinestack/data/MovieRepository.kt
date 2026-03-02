@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.Flow
 class MovieRepository(private val movieDao: MovieDao) {
     private val api = RetrofitClient.apiService
 
-    suspend fun getPopularMovies(): List<Movie> {
-        return api.getPopularMovies(Constants.API_KEY).results.map { it.toDomain() }
+    suspend fun getPopularMovies(page: Int): List<Movie> {
+        return api.getPopularMovies(Constants.API_KEY, page = page).results.map { it.toDomain() }
     }
 
     suspend fun getMovieById(movieId: Int): Movie {
@@ -35,25 +35,25 @@ class MovieRepository(private val movieDao: MovieDao) {
         )
     }
 
-    suspend fun searchMovies(query: String): List<Movie> {
-        return api.searchMovies(Constants.API_KEY, query).results.map { it.toDomain() }
+    suspend fun searchMovies(query: String, page: Int): List<Movie> {
+        return api.searchMovies(Constants.API_KEY, query, page = page).results.map { it.toDomain() }
     }
 
-    suspend fun getMoviesByCategory(category: String): List<Movie> {
+    suspend fun getMoviesByCategory(category: String, page: Int): List<Movie> {
         val response = when (category) {
-            "top_rated" -> api.getTopRatedMovies(Constants.API_KEY)
-            "upcoming" -> api.getUpcomingMovies(Constants.API_KEY)
-            else -> api.getPopularMovies(Constants.API_KEY)
+            "top_rated" -> api.getTopRatedMovies(Constants.API_KEY, page = page)
+            "upcoming" -> api.getUpcomingMovies(Constants.API_KEY, page = page)
+            else -> api.getPopularMovies(Constants.API_KEY, page = page)
         }
         return response.results.map { it.toDomain() }
     }
 
-    suspend fun getRecommendations(movieId: Int): List<Movie> {
-        return api.getRecommendations(movieId, Constants.API_KEY).results.map { it.toDomain() }
+    suspend fun getRecommendations(movieId: Int, page: Int): List<Movie> {
+        return api.getRecommendations(movieId, Constants.API_KEY, page = page).results.map { it.toDomain() }
     }
 
-    suspend fun getSimilarMovies(movieId: Int): List<Movie> {
-        return api.getSimilarMovies(movieId, Constants.API_KEY).results.map { it.toDomain() }
+    suspend fun getSimilarMovies(movieId: Int, page: Int): List<Movie> {
+        return api.getSimilarMovies(movieId, Constants.API_KEY, page = page).results.map { it.toDomain() }
     }
 
     suspend fun getGenres(): List<Genre> {
@@ -83,8 +83,8 @@ class MovieRepository(private val movieDao: MovieDao) {
         return (officialTrailer ?: anyTrailer ?: fallback)?.key
     }
 
-    suspend fun getMoviesByGenre(genreId: Int): List<Movie> {
-        val response = api.discoverMoviesByGenre(Constants.API_KEY, genreId)
+    suspend fun getMoviesByGenre(genreId: Int, page: Int): List<Movie> {
+        val response = api.discoverMoviesByGenre(Constants.API_KEY, genreId, page=page)
         return response.results.map { it.toDomain() }
     }
 

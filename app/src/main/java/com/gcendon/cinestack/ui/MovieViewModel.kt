@@ -27,6 +27,13 @@ sealed class MovieUiState {
 
 class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
 
+    // Variables para controlar la paginacion
+    private var currentPage = 1
+    private var isFetching = false
+    private val allMoviesList = mutableListOf<Movie>()
+    private val _currentGenreId = MutableStateFlow<Int?>(null)
+    val currentGenreId: StateFlow<Int?> = _currentGenreId
+
     // 1. Cambiamos el tipo de dato: de List<Movie> a MovieUiState
     // Empezamos el estado en "Loading" (Cargando) por defecto
     private val _uiState = MutableStateFlow<MovieUiState>(MovieUiState.Loading)
@@ -70,23 +77,23 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
     }
 
     init {
-        fetchMoviesByCategory("popular")
+        fetchMoviesByCategory("popular", isNewCategory = true)
         fetchGenres()
     }
 
     // Función que llama el Home cuando el usuario escribe
     fun onSearchQueryChanged(newQuery: String) {
         _searchQuery.value = newQuery
-
-        // Cada vez que el usuario escribe, cancelamos el pedido anterior
         searchJob?.cancel()
+
         if (newQuery.isBlank()) {
-            // En lugar de ir siempre a populares, vamos a la que estaba elegida
-            fetchMoviesByCategory(_selectedCategory.value)
+            fetchMoviesByCategory(_selectedCategory.value, isNewCategory = true)
         } else {
             _selectedCategory.value = ""
+            // IMPORTANTE: Al empezar una búsqueda nueva, reseteamos la página
+            currentPage = 1
             searchJob = viewModelScope.launch {
-                delay(500) // El "reloj" que evita llamadas innecesarias
+                delay(500)
                 searchMovies(newQuery)
             }
         }
@@ -95,18 +102,41 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
     // Función para cuando el usuario toca un Chip/Botón
     fun onCategorySelected(category: String) {
         _selectedCategory.value = category
-        _searchQuery.value = "" // Si elijo categoría, limpio el buscador
-        fetchMoviesByCategory(category)
+        _searchQuery.value = ""
+        fetchMoviesByCategory(category, isNewCategory = true)
     }
 
-    private fun fetchMoviesByCategory(category: String) {
+    fun fetchMoviesByCategory(category: String, isNewCategory: Boolean = false) {
+        if (isFetching) return // Si ya estamos cargando, no hacemos nada
+
         viewModelScope.launch {
-            _uiState.value = MovieUiState.Loading
+            if (isNewCategory) {
+                currentPage = 1
+                allMoviesList.clear()
+                _uiState.value = MovieUiState.Loading
+            }
+
+            isFetching = true
             try {
-                val movies = repository.getMoviesByCategory(category)
-                _uiState.value = MovieUiState.Success(movies)
+                // Pedimos la página actual al repositorio
+                val newMovies = repository.getMoviesByCategory(category, currentPage)
+
+                // AGREGAMOS las nuevas a la lista que ya teníamos
+                allMoviesList.addAll(newMovies)
+
+                // Emitimos una COPIA de la lista completa (toList() es clave para que Compose detecte el cambio)
+                _uiState.value = MovieUiState.Success(allMoviesList.toList())
+
+                // Preparamos la página para la próxima vez
+                currentPage++
             } catch (e: Exception) {
-                _uiState.value = MovieUiState.Error(e.message ?: "Error de conexión")
+                // Solo mostramos error si es la primera página.
+                // Si falló la página 5, mejor no romper la pantalla y dejar lo que ya había.
+                if (currentPage == 1) {
+                    _uiState.value = MovieUiState.Error(e.message ?: "Error de conexión")
+                }
+            } finally {
+                isFetching = false
             }
         }
     }
@@ -124,29 +154,67 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
     }
 
     fun onGenreSelected(genreId: Int) {
-        _searchQuery.value = "" // Si filtro por género, limpio el buscador
+        _searchQuery.value = ""
+        _selectedCategory.value = "" // Limpiamos categoría para saber que manda el género
+        _currentGenreId.value = genreId     // Guardamos el género actual
 
-        _selectedCategory.value = ""
+        // RESETEAMOS para la nueva lista de género
+        currentPage = 1
+        allMoviesList.clear()
+        _uiState.value = MovieUiState.Loading
+
+        fetchMoviesByGenre(genreId)
+    }
+    // Creamos esta función de apoyo para manejar la carga (Igual que la de categorías)
+    private fun fetchMoviesByGenre(genreId: Int) {
+        if (isFetching) return
+
         viewModelScope.launch {
-            _uiState.value = MovieUiState.Loading
+            isFetching = true
             try {
-                val movies = repository.getMoviesByGenre(genreId)
-                _uiState.value = MovieUiState.Success(movies)
+                // Pasamos el genreId Y la página actual
+                val newMovies = repository.getMoviesByGenre(genreId, currentPage)
+
+                allMoviesList.addAll(newMovies)
+                _uiState.value = MovieUiState.Success(allMoviesList.toList())
+
+                currentPage++
             } catch (e: Exception) {
-                _uiState.value = MovieUiState.Error("No pudimos filtrar por ese género")
+                if (currentPage == 1) {
+                    _uiState.value = MovieUiState.Error("No pudimos filtrar por ese género")
+                }
+            } finally {
+                isFetching = false
             }
         }
     }
 
     // Nueva función privada para buscar
     private fun searchMovies(query: String) {
+        if (isFetching) return
+
         viewModelScope.launch {
-            // No ponemos Loading acá para que la pantalla no parpadee tanto al escribir
+            // Si es la primera vez que buscamos este texto, reseteamos todo
+            if (currentPage == 1) {
+                allMoviesList.clear()
+                // No ponemos Loading para que no parpadee, pero limpiamos la lista
+            }
+
+            isFetching = true
             try {
-                val results = repository.searchMovies(query)
-                _uiState.value = MovieUiState.Success(results)
+                // Pasamos la query Y la página actual
+                val results = repository.searchMovies(query, currentPage)
+
+                allMoviesList.addAll(results)
+                _uiState.value = MovieUiState.Success(allMoviesList.toList())
+
+                currentPage++
             } catch (e: Exception) {
-                _uiState.value = MovieUiState.Error("Error al buscar: ${e.message}")
+                if (currentPage == 1) {
+                    _uiState.value = MovieUiState.Error("Error al buscar: ${e.message}")
+                }
+            } finally {
+                isFetching = false
             }
         }
     }
@@ -154,11 +222,28 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
     fun fetchSimilarMovies(movieId: Int) {
         viewModelScope.launch {
             try {
-                val movies = repository.getSimilarMovies(movieId) // O getRecommendations
+                // Simplemente le pasamos la página 1
+                val movies = repository.getSimilarMovies(movieId, page = 1)
                 _similarMovies.value = movies
             } catch (e: Exception) {
                 _similarMovies.value = emptyList()
             }
+        }
+    }
+    fun loadNextPage() {
+        val query = searchQuery.value
+        val category = selectedCategory.value
+        val genreId = currentGenreId.value
+
+        if (query.isNotEmpty()) {
+            // Si el usuario está buscando algo, cargamos más resultados de esa búsqueda
+            searchMovies(query)
+        } else if (category.isNotEmpty()) {
+            // Si no hay búsqueda pero hay categoría (Popular, etc)
+            fetchMoviesByCategory(category)
+        } else if (genreId != null) {
+            // Si no hay nada de lo anterior pero hay un género elegido
+            fetchMoviesByGenre(genreId)
         }
     }
 
