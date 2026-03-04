@@ -72,8 +72,9 @@ dependencies {
 
     implementation(libs.androidx.navigation.compose)
 
-    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
-
     //iconos
     implementation("androidx.compose.material:material-icons-extended")
+
+    //datastore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 }

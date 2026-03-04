@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.gcendon.cinestack.CineStackApp
+import com.gcendon.cinestack.data.local.ThemeManager
 import com.gcendon.cinestack.data.local.entities.MovieEntity
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
@@ -25,7 +26,10 @@ sealed class MovieUiState {
     data class Error(val message: String) : MovieUiState() // Estado: Explotó algo.
 }
 
-class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
+class MovieViewModel(
+    private val repository: MovieRepository,
+    private val themeManager: ThemeManager
+) : ViewModel() {
 
     // Variables para controlar la paginacion
     private var currentPage = 1
@@ -68,12 +72,19 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
     private val _similarMovies = MutableStateFlow<List<Movie>>(emptyList())
     val similarMovies: StateFlow<List<Movie>> = _similarMovies
 
-    //tema oscuro por defecto
-    private val _isDarkTheme = MutableStateFlow(true)
-    val isDarkTheme: StateFlow<Boolean> = _isDarkTheme
+    //tema oscuro por defecto, pero ahora con memoria
+    val isDarkTheme: StateFlow<Boolean> = themeManager.isDarkTheme
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = true // Valor inicial mientras carga el disco
+        )
 
     fun toggleTheme() {
-        _isDarkTheme.value = !_isDarkTheme.value
+        viewModelScope.launch {
+            // Guardamos el valor opuesto al actual en el disco
+            themeManager.saveTheme(!isDarkTheme.value)
+        }
     }
 
     init {
@@ -165,6 +176,7 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
 
         fetchMoviesByGenre(genreId)
     }
+
     // Creamos esta función de apoyo para manejar la carga (Igual que la de categorías)
     private fun fetchMoviesByGenre(genreId: Int) {
         if (isFetching) return
@@ -230,6 +242,7 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
             }
         }
     }
+
     fun loadNextPage() {
         val query = searchQuery.value
         val category = selectedCategory.value
@@ -293,7 +306,8 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
                 // 1. Buscamos la instancia de la App (CineStackApp)
-                val application = checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]) as CineStackApp
+                val application =
+                    checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]) as CineStackApp
 
                 // 2. Usamos el DAO de la base de datos que ya vive en la App
                 val dao = application.database.movieDao()
@@ -301,8 +315,10 @@ class MovieViewModel(private val repository: MovieRepository) : ViewModel() {
                 // 3. Creamos el Repositorio pasándole ese DAO
                 val repository = MovieRepository(dao)
 
+                val themeManager = ThemeManager(application.applicationContext)
+
                 // 4. Devolvemos el ViewModel listo para usar
-                return MovieViewModel(repository) as T
+                return MovieViewModel(repository, themeManager) as T
             }
         }
     }
