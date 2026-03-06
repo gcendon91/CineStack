@@ -7,6 +7,7 @@ import com.gcendon.cinestack.domain.Movie
 
 import com.gcendon.cinestack.data.local.dao.MovieDao
 import com.gcendon.cinestack.data.local.entities.MovieEntity
+import com.gcendon.cinestack.data.remote.WatchProviderDto
 import kotlinx.coroutines.flow.Flow
 
 class MovieRepository(private val movieDao: MovieDao) {
@@ -49,11 +50,19 @@ class MovieRepository(private val movieDao: MovieDao) {
     }
 
     suspend fun getRecommendations(movieId: Int, page: Int): List<Movie> {
-        return api.getRecommendations(movieId, Constants.API_KEY, page = page).results.map { it.toDomain() }
+        return api.getRecommendations(
+            movieId,
+            Constants.API_KEY,
+            page = page
+        ).results.map { it.toDomain() }
     }
 
     suspend fun getSimilarMovies(movieId: Int, page: Int): List<Movie> {
-        return api.getSimilarMovies(movieId, Constants.API_KEY, page = page).results.map { it.toDomain() }
+        return api.getSimilarMovies(
+            movieId,
+            Constants.API_KEY,
+            page = page
+        ).results.map { it.toDomain() }
     }
 
     suspend fun getGenres(): List<Genre> {
@@ -84,7 +93,7 @@ class MovieRepository(private val movieDao: MovieDao) {
     }
 
     suspend fun getMoviesByGenre(genreId: Int, page: Int): List<Movie> {
-        val response = api.discoverMoviesByGenre(Constants.API_KEY, genreId, page=page)
+        val response = api.discoverMoviesByGenre(Constants.API_KEY, genreId, page = page)
         return response.results.map { it.toDomain() }
     }
 
@@ -97,6 +106,20 @@ class MovieRepository(private val movieDao: MovieDao) {
             rating = this.voteAverage
         )
     }
+
+    suspend fun getWatchProviders(movieId: Int): List<WatchProviderDto> {
+        // 1. Hacemos el pedido a la API
+        val response = api.getWatchProviders(movieId, Constants.API_KEY)
+
+        // 2. Buscamos en el Mapa la clave "AR" (Argentina)
+        // Usamos el "safe call" (?) y el operador "elvis" (?:) por seguridad
+        val argentinaData = response.results["AR"]
+
+        // 3. Devolvemos solo la lista de 'flatrate' (suscripciones como Netflix, Disney+, etc.)
+        // Si no hay datos para Argentina, devolvemos una lista vacía para que la app no explote
+        return argentinaData?.flatrate ?: emptyList()
+    }
+
 
     // --- MÉTODOS LOCALES (FAVORITOS) ---
 

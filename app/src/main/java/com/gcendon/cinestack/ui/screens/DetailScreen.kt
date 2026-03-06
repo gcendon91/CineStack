@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -25,7 +26,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.gcendon.cinestack.data.Constants
 import com.gcendon.cinestack.data.MovieRepository
+import com.gcendon.cinestack.data.remote.WatchProviderDto
 import com.gcendon.cinestack.domain.Movie
 import com.gcendon.cinestack.ui.MovieViewModel
 import com.gcendon.cinestack.ui.components.MovieCard
@@ -53,16 +56,19 @@ fun DetailScreen(
 
     val similarMovies by viewModel.similarMovies.collectAsState()
 
+    // Observamos los proveedores desde el ViewModel
+    val providers by viewModel.watchProviders.collectAsState()
+
     LaunchedEffect(movieId) {
         try {
-            // USAMOS EL VIEWMODEL EN LUGAR DEL REPOSITORY
             movie = viewModel.getMovieDetail(movieId)
             trailerKey = viewModel.getTrailer(movieId)
-
-            // Verificamos si ya es favorita al cargar
             isFavorite = viewModel.isMovieFavorite(movieId)
 
+            // --- TODO LO QUE SEA CARGAR LISTAS ACÁ ABAJO ---
             viewModel.fetchSimilarMovies(movieId)
+            viewModel.fetchWatchProviders(movieId) // <--- ¡LO AGREGÁS ACÁ!
+
         } catch (e: Exception) {
             Log.e("CineStack", "Error cargando detalle: ${e.message}")
         }
@@ -197,6 +203,8 @@ fun DetailScreen(
                         modifier = Modifier.padding(top = 4.dp)
                     )
 
+                    WatchProvidersRow(providers = providers)
+
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // Ficha Técnica
@@ -250,5 +258,41 @@ fun InfoSection(label: String, value: String) {
             fontWeight = FontWeight.Bold
         )
         Text(text = value, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+fun WatchProvidersRow(providers: List<WatchProviderDto>) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        // El título lo dejamos fijo para que el usuario sepa qué estamos buscando
+        Text(
+            text = "Disponible en Argentina:",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (providers.isNotEmpty()) {
+            // Si hay plataformas, mostramos la fila de logos
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(providers) { provider ->
+                    AsyncImage(
+                        model = "${Constants.IMAGE_BASE_URL}${provider.logo_path}",
+                        contentDescription = provider.provider_name,
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                }
+            }
+        } else {
+            // Si la lista está vacía, mostramos el mensaje de aviso
+            Text(
+                text = "No disponible actualmente en plataformas de streaming.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, // Color más suave (grisáceo)
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+        }
     }
 }

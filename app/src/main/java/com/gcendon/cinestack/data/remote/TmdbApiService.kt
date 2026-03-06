@@ -85,4 +85,10 @@ interface TmdbApiService {
         @Query("sort_by") sortBy: String = "popularity.desc", // Para que traiga las mejores primero
         @Query("page") page: Int
     ): MovieResponse
+
+    @GET("movie/{movie_id}/watch/providers")
+    suspend fun getWatchProviders(
+        @Path("movie_id") movieId: Int,
+        @Query("api_key") apiKey: String
+    ): WatchProviderResponse
 }

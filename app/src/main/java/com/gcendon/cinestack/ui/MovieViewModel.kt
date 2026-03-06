@@ -16,6 +16,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.gcendon.cinestack.CineStackApp
 import com.gcendon.cinestack.data.local.ThemeManager
 import com.gcendon.cinestack.data.local.entities.MovieEntity
+import com.gcendon.cinestack.data.remote.WatchProviderDto
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -86,6 +87,11 @@ class MovieViewModel(
             themeManager.saveTheme(!isDarkTheme.value)
         }
     }
+
+    // se guardan los logos
+    private val _watchProviders = MutableStateFlow<List<WatchProviderDto>>(emptyList())
+    // Esta es la versión pública que la pantalla (UI) va a observar
+    val watchProviders: StateFlow<List<WatchProviderDto>> = _watchProviders
 
     init {
         fetchMoviesByCategory("popular", isNewCategory = true)
@@ -239,6 +245,23 @@ class MovieViewModel(
                 _similarMovies.value = movies
             } catch (e: Exception) {
                 _similarMovies.value = emptyList()
+            }
+        }
+    }
+
+    fun fetchWatchProviders(movieId: Int) {
+        viewModelScope.launch {
+            // Limpiamos los logos anteriores para que no se mezclen
+            _watchProviders.value = emptyList()
+
+            try {
+                // Le pedimos al Repositorio los logos de Argentina
+                val providers = repository.getWatchProviders(movieId)
+                // Guardamos el resultado
+                _watchProviders.value = providers
+            } catch (e: Exception) {
+                // Si algo falla, dejamos la lista vacía
+                _watchProviders.value = emptyList()
             }
         }
     }
