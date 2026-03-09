@@ -8,7 +8,10 @@ data class CreditsResponse(
 )
 
 data class CastDto(
-    @SerializedName("name") val name: String
+    @SerializedName("id") val id: Int,
+    @SerializedName("name") val name: String,
+    @SerializedName("character") val character: String, // El nombre del personaje
+    @SerializedName("profile_path") val profilePath: String? // La foto del actor
 )
 
 data class CrewDto(

@@ -7,6 +7,7 @@ import com.gcendon.cinestack.domain.Movie
 
 import com.gcendon.cinestack.data.local.dao.MovieDao
 import com.gcendon.cinestack.data.local.entities.MovieEntity
+import com.gcendon.cinestack.data.remote.CastDto
 import com.gcendon.cinestack.data.remote.WatchProviderDto
 import kotlinx.coroutines.flow.Flow
 
@@ -120,6 +121,14 @@ class MovieRepository(private val movieDao: MovieDao) {
         return argentinaData?.flatrate ?: emptyList()
     }
 
+    suspend fun getMovieCast(movieId: Int): List<CastDto> {
+        // 1. Pedimos los créditos a la API
+        val response = api.getMovieCredits(movieId, Constants.API_KEY)
+
+        // 2. Filtramos: TMDB manda a los actores ordenados por importancia.
+        // Nos quedamos con los primeros 10 para no saturar la memoria.
+        return response.cast.take(10)
+    }
 
     // --- MÉTODOS LOCALES (FAVORITOS) ---
 

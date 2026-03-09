@@ -59,15 +59,17 @@ fun DetailScreen(
     // Observamos los proveedores desde el ViewModel
     val providers by viewModel.watchProviders.collectAsState()
 
+    val castList by viewModel.cast.collectAsState()
+
     LaunchedEffect(movieId) {
         try {
             movie = viewModel.getMovieDetail(movieId)
             trailerKey = viewModel.getTrailer(movieId)
             isFavorite = viewModel.isMovieFavorite(movieId)
 
-            // --- TODO LO QUE SEA CARGAR LISTAS ACÁ ABAJO ---
             viewModel.fetchSimilarMovies(movieId)
-            viewModel.fetchWatchProviders(movieId) // <--- ¡LO AGREGÁS ACÁ!
+            viewModel.fetchWatchProviders(movieId)
+            viewModel.fetchMovieCast(movieId)
 
         } catch (e: Exception) {
             Log.e("CineStack", "Error cargando detalle: ${e.message}")
@@ -205,12 +207,14 @@ fun DetailScreen(
 
                     WatchProvidersRow(providers = providers)
 
+                    CastRow(cast = castList)
+
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // Ficha Técnica
                     InfoSection(label = "Director", value = peli.director)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    InfoSection(label = "Elenco", value = peli.cast)
+                    //Spacer(modifier = Modifier.height(8.dp))
+                    //InfoSection(label = "Elenco", value = peli.cast)
 
                     Spacer(modifier = Modifier.height(32.dp))
                     // Solo mostramos la sección si realmente hay películas similares
@@ -294,5 +298,68 @@ fun WatchProvidersRow(providers: List<WatchProviderDto>) {
                 modifier = Modifier.padding(vertical = 4.dp)
             )
         }
+    }
+}
+
+@Composable
+fun CastRow(cast: List<com.gcendon.cinestack.data.remote.CastDto>) {
+    if (cast.isNotEmpty()) {
+        Column(modifier = Modifier.padding(top = 16.dp)) {
+            Text(
+                text = "Reparto Principal",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(cast) { actor ->
+                    ActorItem(actor)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ActorItem(actor: com.gcendon.cinestack.data.remote.CastDto) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(90.dp)
+    ) {
+        AsyncImage(
+            model = if (actor.profilePath != null)
+                "${Constants.IMAGE_BASE_URL}${actor.profilePath}"
+            else
+                "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-4-user-grey-d8fe357375fc6e57a6e82ef91398a5d7c921711b0c11503504886943e9efd472.svg",
+            contentDescription = actor.name,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(85.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape) // Foto redonda
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = actor.name,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            maxLines = 2,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+
+        Text(
+            text = actor.character,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.secondary,
+            maxLines = 1,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
     }
 }

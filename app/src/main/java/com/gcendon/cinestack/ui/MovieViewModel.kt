@@ -1,5 +1,6 @@
 package com.gcendon.cinestack.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gcendon.cinestack.data.MovieRepository
@@ -20,6 +21,7 @@ import com.gcendon.cinestack.data.remote.WatchProviderDto
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import com.gcendon.cinestack.data.remote.CastDto
 
 sealed class MovieUiState {
     object Loading : MovieUiState() // Estado: Cargando...
@@ -87,6 +89,11 @@ class MovieViewModel(
             themeManager.saveTheme(!isDarkTheme.value)
         }
     }
+
+    //traigo la lista de Cast
+    private val _cast = MutableStateFlow<List<CastDto>>(emptyList())
+    val cast: StateFlow<List<CastDto>> = _cast
+
 
     // se guardan los logos
     private val _watchProviders = MutableStateFlow<List<WatchProviderDto>>(emptyList())
@@ -282,6 +289,22 @@ class MovieViewModel(
             fetchMoviesByGenre(genreId)
         }
     }
+
+    fun fetchMovieCast(movieId: Int) {
+        viewModelScope.launch {
+            // Limpiamos la lista anterior para que no aparezcan actores de la peli anterior
+            _cast.value = emptyList()
+
+            try {
+                val castList = repository.getMovieCast(movieId)
+                _cast.value = castList
+            } catch (e: Exception) {
+                Log.e("MovieViewModel", "Error al obtener el reparto: ${e.message}")
+                _cast.value = emptyList()
+            }
+        }
+    }
+
 
     suspend fun getMovieDetail(id: Int) = repository.getMovieById(id)
     suspend fun getTrailer(id: Int) = repository.getMovieTrailerKey(id)
