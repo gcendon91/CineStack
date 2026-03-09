@@ -255,7 +255,6 @@ class MovieViewModel(
             }
         }
     }
-
     fun fetchWatchProviders(movieId: Int) {
         viewModelScope.launch {
             // Limpiamos los logos anteriores para que no se mezclen

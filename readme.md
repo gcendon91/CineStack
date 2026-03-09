@@ -85,3 +85,10 @@ object Constants {
 * **`data/`**: API configuration (Retrofit), local database (Room), preferences (DataStore), DTOs, and Repository implementation.
 * **`domain/`**: Data classes (Domain models) representing pure business logic.
 * **`ui/`**: UI screens (Compose), ViewModels, and navigation setup.
+
+### 📸 Vista Previa / Screenshots
+
+<div align="center">
+  <img src="screenshots/home_screen.png" width="30%" />
+  <img src="screenshots/detail_screen.png" width="30%" />
+</div>

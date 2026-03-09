@@ -50,20 +50,14 @@ class MovieRepository(private val movieDao: MovieDao) {
         return response.results.map { it.toDomain() }
     }
 
-    suspend fun getRecommendations(movieId: Int, page: Int): List<Movie> {
-        return api.getRecommendations(
-            movieId,
-            Constants.API_KEY,
-            page = page
-        ).results.map { it.toDomain() }
-    }
-
-    suspend fun getSimilarMovies(movieId: Int, page: Int): List<Movie> {
+    suspend fun getSimilarMovies(movieId: Int, page: Int = 1): List<Movie> {
         return api.getSimilarMovies(
             movieId,
             Constants.API_KEY,
             page = page
-        ).results.map { it.toDomain() }
+        ).results
+            .take(5) // Aquí cortamos en 5 para evitar que el usuario vea contenido poco relevante
+            .map { it.toDomain() }
     }
 
     suspend fun getGenres(): List<Genre> {

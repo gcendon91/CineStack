@@ -217,6 +217,7 @@ fun DetailScreen(
                     //InfoSection(label = "Elenco", value = peli.cast)
 
                     Spacer(modifier = Modifier.height(32.dp))
+
                     // Solo mostramos la sección si realmente hay películas similares
                     if (similarMovies.isNotEmpty()) {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
