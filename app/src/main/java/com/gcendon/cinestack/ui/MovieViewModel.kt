@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import com.gcendon.cinestack.data.remote.CastDto
+import com.gcendon.cinestack.data.remote.ReviewDto
 
 sealed class MovieUiState {
     object Loading : MovieUiState() // Estado: Cargando...
@@ -60,6 +61,9 @@ class MovieViewModel(
     // Lista de géneros que se cargará una sola vez
     private val _genres = MutableStateFlow<List<Genre>>(emptyList())
     val genres: StateFlow<List<Genre>> = _genres
+
+    private val _reviews = MutableStateFlow<List<ReviewDto>>(emptyList())
+    val reviews: StateFlow<List<ReviewDto>> = _reviews
 
     // Convertimos el Flow de Room en un StateFlow que la UI pueda entender
     val favoriteMovies: StateFlow<List<Movie>> = repository.getFavorites()
@@ -268,6 +272,19 @@ class MovieViewModel(
             } catch (e: Exception) {
                 // Si algo falla, dejamos la lista vacía
                 _watchProviders.value = emptyList()
+            }
+        }
+    }
+
+    fun fetchMovieReviews(movieId: Int) {
+        viewModelScope.launch {
+            _reviews.value = emptyList() // Limpiamos antes de cargar la nueva peli
+            try {
+                val reviewList = repository.getMovieReviews(movieId)
+                _reviews.value = reviewList
+            } catch (e: Exception) {
+                Log.e("CineStack", "Error reviews: ${e.message}")
+                _reviews.value = emptyList()
             }
         }
     }

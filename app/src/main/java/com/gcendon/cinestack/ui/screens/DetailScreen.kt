@@ -3,10 +3,14 @@ package com.gcendon.cinestack.ui.screens
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,11 +27,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.gcendon.cinestack.data.Constants
 import com.gcendon.cinestack.data.MovieRepository
+import com.gcendon.cinestack.data.remote.ReviewDto
 import com.gcendon.cinestack.data.remote.WatchProviderDto
 import com.gcendon.cinestack.domain.Movie
 import com.gcendon.cinestack.ui.MovieViewModel
@@ -61,6 +68,8 @@ fun DetailScreen(
 
     val castList by viewModel.cast.collectAsState()
 
+    val reviews by viewModel.reviews.collectAsState()
+
     LaunchedEffect(movieId) {
         try {
             movie = viewModel.getMovieDetail(movieId)
@@ -70,6 +79,7 @@ fun DetailScreen(
             viewModel.fetchSimilarMovies(movieId)
             viewModel.fetchWatchProviders(movieId)
             viewModel.fetchMovieCast(movieId)
+            viewModel.fetchMovieReviews(movieId)
 
         } catch (e: Exception) {
             Log.e("CineStack", "Error cargando detalle: ${e.message}")
@@ -245,6 +255,23 @@ fun DetailScreen(
                             }
                         }
                     }
+
+                    if (reviews.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = "Reseñas de usuarios",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+
+                        // Mostramos solo las primeras 3 para no saturar
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            reviews.take(5).forEach { review ->
+                                ReviewItem(review = review)
+                            }
+                        }
+                    }
                 }
             }
         } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -362,5 +389,65 @@ fun ActorItem(actor: com.gcendon.cinestack.data.remote.CastDto) {
             maxLines = 1,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
+    }
+}
+
+@Composable
+fun ReviewItem(review: ReviewDto) {
+    // Estado para saber si está expandida o no
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clickable { isExpanded = !isExpanded } // Cambia el estado al tocar
+            .animateContentSize(), // Animación automática de tamaño
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = review.author.take(1).uppercase(),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = review.author,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = review.content,
+                style = MaterialTheme.typography.bodyMedium,
+                // Si está expandido, muestra todo. Si no, máximo 4 líneas.
+                maxLines = if (isExpanded) Int.MAX_VALUE else 4,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 20.sp
+            )
+
+            // Un pequeño indicador visual
+            Text(
+                text = if (isExpanded) "Leer menos" else "Leer más...",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
     }
 }

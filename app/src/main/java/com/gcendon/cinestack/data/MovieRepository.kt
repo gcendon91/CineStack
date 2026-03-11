@@ -8,6 +8,7 @@ import com.gcendon.cinestack.domain.Movie
 import com.gcendon.cinestack.data.local.dao.MovieDao
 import com.gcendon.cinestack.data.local.entities.MovieEntity
 import com.gcendon.cinestack.data.remote.CastDto
+import com.gcendon.cinestack.data.remote.ReviewDto
 import com.gcendon.cinestack.data.remote.WatchProviderDto
 import kotlinx.coroutines.flow.Flow
 
@@ -90,6 +91,10 @@ class MovieRepository(private val movieDao: MovieDao) {
     suspend fun getMoviesByGenre(genreId: Int, page: Int): List<Movie> {
         val response = api.discoverMoviesByGenre(Constants.API_KEY, genreId, page = page)
         return response.results.map { it.toDomain() }
+    }
+
+    suspend fun getMovieReviews(movieId: Int): List<ReviewDto> {
+        return api.getMovieReviews(movieId, Constants.API_KEY).results
     }
 
     private fun MovieDto.toDomain(): Movie {

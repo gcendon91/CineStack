@@ -91,4 +91,12 @@ interface TmdbApiService {
         @Path("movie_id") movieId: Int,
         @Query("api_key") apiKey: String
     ): WatchProviderResponse
+
+    @GET("movie/{movie_id}/reviews")
+    suspend fun getMovieReviews(
+        @Path("movie_id") movieId: Int,
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "en-US"
+        // Nota: Usamos en-US porque casi no hay reseñas en español en TMDB.
+    ): ReviewResponse
 }
