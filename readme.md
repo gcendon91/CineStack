@@ -1,4 +1,4 @@
-# <img src="screenshots/icon.jpg" width="45" vertical-align="middle" /> CineStack
+# CineStack
 
 [English](#english) | [Español](#español)
 
